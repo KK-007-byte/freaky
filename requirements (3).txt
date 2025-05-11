@@ -2,5 +2,7 @@ yfinance
 plotly
 streamlit
 pandas
+seaborn 
 ta
-seaborn
+scikit-learn
+matplotlib
