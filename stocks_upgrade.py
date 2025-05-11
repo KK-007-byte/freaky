@@ -1,13 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
 
-# In[ ]:
-
-
-
-
-
-# In[ ]:
 
 
 import yfinance as yf
