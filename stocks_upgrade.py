@@ -11,7 +11,13 @@
 
 
 import yfinance as yf
-
+import seaborn as sns
+import ta
+import pandas as pd
+import plotly.graph_objects as go
+import plotly.figure_factory as ff
+import plotly.express as px
+import streamlit as st
 tickers = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA']
 data = yf.download(tickers, start='2018-01-01', end='2024-12-31')
 data.to_csv('stock_data.csv')
@@ -23,23 +29,9 @@ data.to_csv('stock_data.csv')
 returns = data.pct_change().dropna()
 
 
-# In[20]:
 
-
-import seaborn as sns
 sns.heatmap(returns.corr(), annot=True, cmap='coolwarm')
 
-
-# In[21]:
-
-
-
-
-# In[22]:
-
-
-import ta
-import pandas as pd
 
 
 # In[23]:
@@ -51,10 +43,6 @@ def add_moving_averages(df, windows=[20, 50, 100]):
     return df
 
 
-# In[24]:
-
-
-from ta.momentum import RSIIndicator
 
 def add_rsi(df, window=14):
     rsi = RSIIndicator(close=df['Close'], window=window)
@@ -62,10 +50,7 @@ def add_rsi(df, window=14):
     return df
 
 
-# In[25]:
 
-
-from ta.trend import MACD
 
 def add_macd(df):
     macd = MACD(close=df['Close'])
@@ -99,16 +84,7 @@ def compute_indicators(ticker):
     return df.dropna()
 
 
-# In[28]:
 
-
-import plotly.graph_objects as go
-
-
-# In[29]:
-
-
-import plotly.figure_factory as ff
 
 corr = returns.corr().round(2)
 
@@ -124,11 +100,6 @@ fig = ff.create_annotated_heatmap(
 fig.update_layout(title='Correlation Heatmap of Daily Returns')
 fig.show()
 
-
-# In[33]:
-
-
-import plotly.express as px
 returns_long = returns.reset_index().melt(var_name='Stock', value_name='Daily Return')
 
 fig = px.histogram(
@@ -157,19 +128,7 @@ fig.show()
 # In[36]:
 
 
-from pypfopt.efficient_frontier import EfficientFrontier
-from pypfopt.expected_returns import mean_historical_return
-from pypfopt.risk_models import CovarianceShrinkage
 
-
-# In[37]:
-
-
-import streamlit as st
-import yfinance as yf
-import pandas as pd
-import plotly.express as px
-import plotly.figure_factory as ff
 
 st.title("📊 Stock Return Analysis")
 
