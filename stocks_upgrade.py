@@ -1,150 +1,46 @@
-
-
-
 import yfinance as yf
 import seaborn as sns
-import ta
 import pandas as pd
-import plotly.graph_objects as go
-import plotly.figure_factory as ff
-import plotly.express as px
-import matplotlib.pyplot as plt
 import streamlit as st
-tickers = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA']
-data = yf.download(tickers, start='2018-01-01', end='2024-12-31')
-data.to_csv('stock_data.csv')
-
-
-# In[19]:
-
-
-returns = data.pct_change().dropna()
-
-
-fig,ax = plt.subplot()
-
-sns.heatmap(returns.corr(), annot=True, cmap='coolwarm',ax=ax)
-st.pyplot(fig)
-
-
-
-# In[23]:
+import matplotlib.pyplot as plt
 from ta.momentum import RSIIndicator
 from ta.trend import MACD
+import plotly.express as px
+import plotly.figure_factory as ff
 
-def add_moving_averages(df, windows=[20, 50, 100]):
-    for window in windows:
-        df[f'MA_{window}'] = df['Close'].rolling(window=window).mean()
-    return df
+# --- Sidebar Inputs ---
+st.title("📊 Stock Return Analytics Dashboard")
 
-
-
-def add_rsi(df, window=14):
-    rsi = RSIIndicator(close=df['Close'], window=window)
-    df['RSI'] = rsi.rsi()
-    return df
-
-
-
-
-def add_macd(df):
-    macd = MACD(close=df['Close'])
-    df['MACD'] = macd.macd()
-    df['MACD_Signal'] = macd.macd_signal()
-    df['MACD_Diff'] = macd.macd_diff()
-    return df
-
-
-# In[26]:
-
-
-def compute_indicators(ticker):
-    df = yf.download(ticker, start='2020-01-01', end='2024-12-31')
-    df = df[['Close']]
-    df = add_moving_averages(df)
-    df = add_rsi(df)
-    df = add_macd(df)
-    return df.dropna()
-
-
-# In[27]:
-
-
-def compute_indicators(ticker):
-    df = yf.download(ticker, start='2020-01-01', end='2024-12-31')
-    df = df[['Close']]
-    df = add_moving_averages(df)
-    df = add_rsi(df)
-    df = add_macd(df)
-    return df.dropna()
-
-
-
-
-corr = returns.corr().round(2)
-
-fig = ff.create_annotated_heatmap(
-    z=corr.values,
-    x=corr.columns.tolist(),
-    y=corr.index.tolist(),
-    annotation_text=corr.values,
-    colorscale='Viridis',
-    showscale=True
-)
-
-fig.update_layout(title='Correlation Heatmap of Daily Returns')
-fig.show()
-
-returns_long = returns.reset_index().melt(var_name='Stock', value_name='Daily Return')
-
-fig = px.histogram(
-    returns_long,
-    x='Daily Return',
-    facet_col='Stock',
-    color='Stock',
-    nbins=100,
-    title='Daily Return Distributions (by Stock)',
-    marginal='box',
-    histnorm='probability'
-)
-fig.update_layout(showlegend=False)
-fig.show()
-
-
-# In[34]:
-
-
-
-# In[35]:
-
-
-
-
-# In[36]:
-
-
-
-
-st.title("📊 Stock Return Analysis")
-
-# Sidebar
 st.sidebar.header("Select Parameters")
-tickers = st.sidebar.multiselect("Choose Stocks", ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA'], default=['AAPL', 'MSFT'])
-start_date = st.sidebar.date_input("Start Date", pd.to_datetime('2020-01-01'))
-end_date = st.sidebar.date_input("End Date", pd.to_datetime('2024-12-31'))
+tickers = st.sidebar.multiselect(
+    "Choose Stocks",
+    ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA'],
+    default=['AAPL', 'MSFT']
+)
+start_date = st.sidebar.date_input("Start Date", pd.to_datetime("2020-01-01"))
+end_date = st.sidebar.date_input("End Date", pd.to_datetime("2024-12-31"))
 
-# Load data
+# --- Data Loader ---
 @st.cache_data
 def load_data(tickers, start, end):
-    data = yf.download(tickers, start=start, end=end)
-    return data
+    df = yf.download(tickers, start=start, end=end, group_by='ticker')
+    return df
 
 data = load_data(tickers, start_date, end_date)
-returns = data.pct_change().dropna()
 
-# 📌 Correlation Heatmap
+# --- Return Calculations ---
+@st.cache_data
+def get_returns(data, tickers):
+    price_data = pd.concat([data[ticker]['Close'] for ticker in tickers], axis=1)
+    price_data.columns = tickers
+    returns = price_data.pct_change().dropna()
+    return returns
+
+returns = get_returns(data, tickers)
+
+# --- Correlation Heatmap ---
 if len(tickers) > 1:
-    st.subheader("Correlation Heatmap of Daily Returns")
+    st.subheader("📈 Correlation Heatmap of Daily Returns")
     corr = returns.corr().round(2)
     heatmap = ff.create_annotated_heatmap(
         z=corr.values,
@@ -156,26 +52,51 @@ if len(tickers) > 1:
     )
     st.plotly_chart(heatmap)
 
-# 📌 Histogram of Daily Returns
-st.subheader("Histogram of Daily Return Distributions")
-
+# --- Histogram of Returns ---
+st.subheader("📉 Histogram of Daily Return Distributions")
+returns_long = returns.reset_index().melt(id_vars='Date', var_name='Stock', value_name='Daily Return')
 
 hist_fig = px.histogram(
-    returns,
-    x=('Close','AAPL'),
-    facet_col=('Volume', 'AAPL'),
-    color=('Volume', 'AAPL'),
+    returns_long,
+    x='Daily Return',
+    facet_col='Stock',
+    color='Stock',
     nbins=100,
-    title='Daily Return Distributions',
+    title='Daily Return Distributions by Stock',
+    marginal='box',
     histnorm='probability'
 )
-
 st.plotly_chart(hist_fig)
 
-st.caption("Built with Streamlit & Plotly")
+# --- Indicator Calculation ---
+def add_indicators(df):
+    df['MA_20'] = df['Close'].rolling(window=20).mean()
+    df['MA_50'] = df['Close'].rolling(window=50).mean()
+    df['RSI'] = RSIIndicator(close=df['Close'], window=14).rsi()
+    macd = MACD(close=df['Close'])
+    df['MACD'] = macd.macd()
+    df['MACD_Signal'] = macd.macd_signal()
+    df['MACD_Diff'] = macd.macd_diff()
+    return df
 
+# --- Show indicators for one selected stock ---
+if tickers:
+    st.subheader("📊 Technical Indicators for Selected Stock")
+    selected_stock = st.selectbox("Select one stock", tickers)
+    stock_data = yf.download(selected_stock, start=start_date, end=end_date)
+    stock_data = add_indicators(stock_data)
 
-# In[ ]:
+    fig = px.line(stock_data, x=stock_data.index, y=['Close', 'MA_20', 'MA_50'], title=f"{selected_stock} Price with Moving Averages")
+    st.plotly_chart(fig)
+
+    fig_rsi = px.line(stock_data, x=stock_data.index, y='RSI', title=f"{selected_stock} RSI (14)")
+    st.plotly_chart(fig_rsi)
+
+    fig_macd = px.line(stock_data, x=stock_data.index, y=['MACD', 'MACD_Signal', 'MACD_Diff'], title=f"{selected_stock} MACD")
+    st.plotly_chart(fig_macd)
+
+st.caption("📌 Built with Streamlit, yFinance, TA, and Plotly")
+
 
 
 
