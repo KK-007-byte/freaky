@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.figure_factory as ff
 import plotly.express as px
+import matplotlib.pyplot as plt
 import streamlit as st
 tickers = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA']
 data = yf.download(tickers, start='2018-01-01', end='2024-12-31')
@@ -20,13 +21,16 @@ data.to_csv('stock_data.csv')
 returns = data.pct_change().dropna()
 
 
+fig,ax = plt.subplot()
 
-sns.heatmap(returns.corr(), annot=True, cmap='coolwarm')
+sns.heatmap(returns.corr(), annot=True, cmap='coolwarm',ax=ax)
+st.pyplot(fig)
 
 
 
 # In[23]:
-
+from ta.momentum import RSIIndicator
+from ta.trend import MACD
 
 def add_moving_averages(df, windows=[20, 50, 100]):
     for window in windows:
