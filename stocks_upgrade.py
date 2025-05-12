@@ -1,103 +1,130 @@
+import dash
+from dash import dcc, html, Input, Output
 import yfinance as yf
-import seaborn as sns
 import pandas as pd
-import streamlit as st
-import matplotlib.pyplot as plt
+import plotly.express as px
 from ta.momentum import RSIIndicator
 from ta.trend import MACD
-import plotly.express as px
-import plotly.figure_factory as ff
+import dash_bootstrap_components as dbc
 
-# --- Sidebar Inputs ---
-st.title("📊 Stock Return Analytics Dashboard")
+# Initialize the app
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+server = app.server  # For deployment
 
-st.sidebar.header("Select Parameters")
-tickers = st.sidebar.multiselect(
-    "Choose Stocks",
-    ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA'],
-    default=['AAPL', 'MSFT']
+# Define stock options
+stock_options = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
+
+# Layout
+app.layout = dbc.Container([
+    html.H1("\U0001F4C8 Stock Return Analytics Dashboard", className="text-center my-4"),
+
+    dbc.Row([
+        dbc.Col([
+            html.Label("Choose Stocks:"),
+            dcc.Dropdown(
+                id='stock-dropdown',
+                options=[{'label': stock, 'value': stock} for stock in stock_options],
+                value=['AAPL', 'MSFT'],
+                multi=True
+            ),
+
+            html.Br(),
+            html.Label("Select Date Range:"),
+            dcc.DatePickerRange(
+                id='date-range',
+                start_date='2020-01-01',
+                end_date='2024-12-31',
+                display_format='YYYY-MM-DD'
+            ),
+        ], width=4),
+
+        dbc.Col([
+            html.Label("Select One Stock for Technical Indicators:"),
+            dcc.Dropdown(id='indicator-stock', multi=False)
+        ], width=4)
+    ], className="mb-4"),
+
+    dbc.Row([
+        dbc.Col(dcc.Graph(id='correlation-heatmap')),
+    ]),
+
+    dbc.Row([
+        dbc.Col(dcc.Graph(id='histogram')),
+    ]),
+
+    dbc.Row([
+        dbc.Col(dcc.Graph(id='price-ma')),
+    ]),
+
+    dbc.Row([
+        dbc.Col(dcc.Graph(id='rsi-chart')),
+    ]),
+
+    dbc.Row([
+        dbc.Col(dcc.Graph(id='macd-chart')),
+    ])
+])
+
+# Callback to update indicator dropdown
+@app.callback(
+    Output('indicator-stock', 'options'),
+    Input('stock-dropdown', 'value')
 )
-start_date = st.sidebar.date_input("Start Date", pd.to_datetime("2020-01-01"))
-end_date = st.sidebar.date_input("End Date", pd.to_datetime("2024-12-31"))
+def update_indicator_dropdown(selected_stocks):
+    return [{'label': s, 'value': s} for s in selected_stocks] if selected_stocks else []
 
-# --- Data Loader ---
-@st.cache_data
-def load_data(tickers, start, end):
-    df = yf.download(tickers, start=start, end=end, group_by='ticker')
-    return df
+# Callback to update graphs
+@app.callback(
+    [Output('correlation-heatmap', 'figure'),
+     Output('histogram', 'figure'),
+     Output('price-ma', 'figure'),
+     Output('rsi-chart', 'figure'),
+     Output('macd-chart', 'figure')],
+    [Input('stock-dropdown', 'value'),
+     Input('indicator-stock', 'value'),
+     Input('date-range', 'start_date'),
+     Input('date-range', 'end_date')]
+)
+def update_graphs(tickers, selected_stock, start_date, end_date):
+    if not tickers or not start_date or not end_date:
+        return [{}]*5
 
-data = load_data(tickers, start_date, end_date)
+    data = yf.download(tickers, start=start_date, end=end_date, group_by='ticker')
 
-# --- Return Calculations ---
-@st.cache_data
-def get_returns(data, tickers):
-    price_data = pd.concat([data[ticker]['Close'] for ticker in tickers], axis=1)
+    # Return Calculations
+    price_data = pd.concat([data[t]['Close'] for t in tickers], axis=1)
     price_data.columns = tickers
     returns = price_data.pct_change().dropna()
-    return returns
 
-returns = get_returns(data, tickers)
+    # Correlation Heatmap
+    corr_fig = px.imshow(returns.corr(), text_auto=True, title="Correlation Heatmap of Returns")
 
-# --- Correlation Heatmap ---
-if len(tickers) > 1:
-    st.subheader("📈 Correlation Heatmap of Daily Returns")
-    corr = returns.corr().round(2)
-    heatmap = ff.create_annotated_heatmap(
-        z=corr.values,
-        x=corr.columns.tolist(),
-        y=corr.index.tolist(),
-        annotation_text=corr.values,
-        colorscale='Viridis',
-        showscale=True
+    # Histogram
+    returns_long = returns.reset_index().melt(id_vars='Date', var_name='Stock', value_name='Daily Return')
+    hist_fig = px.histogram(
+        returns_long, x='Daily Return', facet_col='Stock', color='Stock', nbins=100,
+        title='Daily Return Distributions by Stock', marginal='box', histnorm='probability'
     )
-    st.plotly_chart(heatmap)
 
-# --- Histogram of Returns ---
-st.subheader("📉 Histogram of Daily Return Distributions")
-returns_long = returns.reset_index().melt(id_vars='Date', var_name='Stock', value_name='Daily Return')
+    # If no stock selected for indicators, return empty figures for those
+    if not selected_stock:
+        return corr_fig, hist_fig, {}, {}, {}
 
-hist_fig = px.histogram(
-    returns_long,
-    x='Daily Return',
-    facet_col='Stock',
-    color='Stock',
-    nbins=100,
-    title='Daily Return Distributions by Stock',
-    marginal='box',
-    histnorm='probability'
-)
-st.plotly_chart(hist_fig)
-
-# --- Indicator Calculation ---
-def add_indicators(df):
-    df['MA_20'] = df['Close'].rolling(window=20).mean()
-    df['MA_50'] = df['Close'].rolling(window=50).mean()
-    df['RSI'] = RSIIndicator(close=df['Close'], window=14).rsi()
-    macd = MACD(close=df['Close'])
-    df['MACD'] = macd.macd()
-    df['MACD_Signal'] = macd.macd_signal()
-    df['MACD_Diff'] = macd.macd_diff()
-    return df
-
-# --- Show indicators for one selected stock ---
-if tickers:
-    st.subheader("📊 Technical Indicators for Selected Stock")
-    selected_stock = st.selectbox("Select one stock", tickers)
+    # Indicators
     stock_data = yf.download(selected_stock, start=start_date, end=end_date)
-    stock_data = add_indicators(stock_data)
+    stock_data['MA_20'] = stock_data['Close'].rolling(window=20).mean()
+    stock_data['MA_50'] = stock_data['Close'].rolling(window=50).mean()
+    stock_data['RSI'] = RSIIndicator(close=stock_data['Close'], window=14).rsi()
+    macd = MACD(close=stock_data['Close'])
+    stock_data['MACD'] = macd.macd()
+    stock_data['MACD_Signal'] = macd.macd_signal()
+    stock_data['MACD_Diff'] = macd.macd_diff()
 
-    fig = px.line(stock_data, x=stock_data.index, y=['Close', 'MA_20', 'MA_50'], title=f"{selected_stock} Price with Moving Averages")
-    st.plotly_chart(fig)
+    ma_fig = px.line(stock_data, x=stock_data.index, y=['Close', 'MA_20', 'MA_50'], title=f"{selected_stock} Price with Moving Averages")
+    rsi_fig = px.line(stock_data, x=stock_data.index, y='RSI', title=f"{selected_stock} RSI (14)")
+    macd_fig = px.line(stock_data, x=stock_data.index, y=['MACD', 'MACD_Signal', 'MACD_Diff'], title=f"{selected_stock} MACD")
 
-    fig_rsi = px.line(stock_data, x=stock_data.index, y='RSI', title=f"{selected_stock} RSI (14)")
-    st.plotly_chart(fig_rsi)
+    return corr_fig, hist_fig, ma_fig, rsi_fig, macd_fig
 
-    fig_macd = px.line(stock_data, x=stock_data.index, y=['MACD', 'MACD_Signal', 'MACD_Diff'], title=f"{selected_stock} MACD")
-    st.plotly_chart(fig_macd)
-
-st.caption("📌 Built with Streamlit, yFinance, TA, and Plotly")
-
-
-
-
-
+if __name__ == '__main__':
+    app.run_server(debug=True)
