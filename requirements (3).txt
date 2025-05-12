@@ -1,8 +1,7 @@
-yfinance
+dash
 plotly
-streamlit
+yfinance
 pandas
-seaborn 
 ta
-scikit-learn
-matplotlib
+gunicorn
+dash-bootstrap-components
