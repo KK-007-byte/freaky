@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>📈 Stock Return Analytics Dashboard</h1>
+    <form method="post">
+        <label>Select Stocks:</label><br>
+        {% for stock in stock_options %}
+            <input type="checkbox" name="stocks" value="{{ stock }}" {% if stock in selected_stocks %}checked{% endif %}>{{ stock }}
+        {% endfor %}<br><br>
+
+        <label>Select Date Range:</label><br>
+        <input type="date" name="start_date" value="{{ start_date }}">
+        <input type="date" name="end_date" value="{{ end_date }}"><br><br>
+
+        <label>Stock for Technical Indicators:</label>
+        <select name="indicator_stock">
+            <option value="">--None--</option>
+            {% for stock in selected_stocks %}
+                <option value="{{ stock }}" {% if stock == selected_stock %}selected{% endif %}>{{ stock }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <button type="submit">Update</button>
+    </form>
+
+    {% if graph1 %}
+        <div id="graph1"></div>
+        <div id="graph2"></div>
+        <div id="graph3"></div>
+        <div id="graph4"></div>
+        <div id="graph5"></div>
+
+        <script>
+            Plotly.newPlot('graph1', {{ graph1 | safe }});
+            Plotly.newPlot('graph2', {{ graph2 | safe }});
+            {% if graph3 %}Plotly.newPlot('graph3', {{ graph3 | safe }});{% endif %}
+            {% if graph4 %}Plotly.newPlot('graph4', {{ graph4 | safe }});{% endif %}
+            {% if graph5 %}Plotly.newPlot('graph5', {{ graph5 | safe }});{% endif %}
+        </script>
+    {% endif %}
+</body>
+</html>
