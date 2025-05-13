@@ -1,7 +1,6 @@
-dash
-plotly
+flask
 yfinance
-pandas
+plotly
 ta
-gunicorn
-dash-bootstrap-components
+json
+pandas
