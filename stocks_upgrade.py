@@ -128,5 +128,3 @@ def update_graphs(tickers, selected_stock, start_date, end_date):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
-app = dash.Dash(__name__, ...)
-server = app.server  # <- THIS is what Gunicorn needs
