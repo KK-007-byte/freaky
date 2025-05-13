@@ -1,5 +1,7 @@
-my-stock-dashboard/
-├── stocks_upgrade.py
-├── requirements.txt
-├── Procfile
-├── runtime.txt (optional)
+stock_dashboard_flask/
+│
+├── app.py
+├── templates/
+│   ├── index.html
+├── static/
+│   ├── style.css  (optional)
