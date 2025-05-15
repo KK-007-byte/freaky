@@ -1,7 +1,10 @@
-stock_dashboard_flask/
+freaky/
 │
-├── app.py
-├── templates/
-│   ├── index.html
-├── static/
-│   ├── style.css  (optional)
+├── ML project/
+│   ├── Stocks_upgrade.py
+│   ├── templates/
+│   ├── static/
+│   └── (any model or data files)
+│
+├── requirements.txt
+├── README.md
