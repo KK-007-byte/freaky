@@ -1,1 +1,1 @@
-web: gunicorn stocks_upgrade:server
+web: gunicorn stocks_upgrade:app
