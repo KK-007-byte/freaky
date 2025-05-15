@@ -2,5 +2,4 @@ flask
 yfinance
 plotly
 ta
-json
 pandas
