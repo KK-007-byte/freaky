@@ -72,7 +72,7 @@ def index():
         end_date = request.form['end_date']
         graphs = get_plots(selected_stocks, selected_stock, start_date, end_date)
 
-    return render_template(
+    return (
         
         stock_options=stock_options,
         selected_stocks=selected_stocks,
