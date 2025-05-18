@@ -73,7 +73,7 @@ def index():
         graphs = get_plots(selected_stocks, selected_stock, start_date, end_date)
 
     return render_template(
-        'index.html',
+        
         stock_options=stock_options,
         selected_stocks=selected_stocks,
         selected_stock=selected_stock,
