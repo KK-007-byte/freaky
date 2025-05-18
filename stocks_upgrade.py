@@ -79,11 +79,11 @@ def index():
         selected_stock==selected_stock,
         start_date==start_date,
         end_date==end_date,
-        graph1==graphs[0],
-        graph2==graphs[1],
-        graph3==graphs[2],
-        graph4==graphs[3],
-        graph5==graphs[4]
+        graphs[0],
+        graphs[1],
+        graphs[2],
+        graphs[3],
+        graphs[4]
     )
 
 if __name__ == '__main__':
