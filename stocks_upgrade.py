@@ -73,12 +73,6 @@ def index():
         graphs = get_plots(selected_stocks, selected_stock, start_date, end_date)
 
     return (
-        
-        stock_options==stock_options,
-        selected_stocks==selected_stocks,
-        selected_stock==selected_stock,
-        start_date==start_date,
-        end_date==end_date,
         graphs[0],
         graphs[1],
         graphs[2],
