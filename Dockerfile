@@ -1,21 +1,25 @@
-# Use an official Python runtime as the base image
+# Base image with Python 3.11
 FROM python:3.11-slim
 
-# Create and set the working directory inside the container
+# Install C++ build tools
+RUN apt-get update && apt-get install -y g++ && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
 WORKDIR /app
 
-# Copy dependency file(s) first for better caching
-COPY requirements.txt ./
+# Copy dependency file first (better caching)
+COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire project into the container
+# Copy the rest of your repo into the container
 COPY . .
 
-# Expose the port your app listens on (adjust if needed)
+# Expose the port (adjust if needed)
 EXPOSE 5000
 
-# Default command to run your app (adjust as necessary)
-CMD ["python", "app.py"]
+# Run your main Python app
+CMD ["python", "stocks_upgrade.py"]
+
 
