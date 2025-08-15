@@ -4,4 +4,4 @@ COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 EXPOSE <port-we-find>
-CMD ["python", "ML project/Stocks_upgrade.py"]
+CMD ["python", "ML project/stocks_upgrade.py"]
